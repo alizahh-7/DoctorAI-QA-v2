@@ -27,7 +27,12 @@ client = OpenAI(
 )
 
 st.set_page_config(page_title="DoctorAI-QA v2", page_icon="🩺", layout="wide")
-
+st.set_page_config(
+    page_title="DoctorAI-QA v2",
+    page_icon="🩺",
+    layout="wide",
+    initial_sidebar_state="expanded"   # 👈 ADD THIS
+)
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -35,7 +40,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 
 /* ── HIDE STREAMLIT HEADER & FOOTER COMPLETELY ── */
 #MainMenu {visibility:hidden;}
-header[data-testid="stHeader"] {display:none !important;}
+
 footer {display:none !important;}
 .stDeployButton {display:none !important;}
 [data-testid="stToolbar"] {display:none !important;}
