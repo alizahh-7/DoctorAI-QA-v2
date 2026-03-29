@@ -319,20 +319,18 @@ if st.session_state.last_reply and tts_enabled:
 
 # ─────────────────────────────────────────
 #  VOICE INPUT — Browser Web Speech API
+#  Reliable approach: JS writes to a visible
+#  (but styled-small) text input, user sees
+#  transcript, then clicks Send or presses Enter
 # ─────────────────────────────────────────
 
-# 1. Read transcript from query params (set by JS after recognition)
-voice_transcript = st.query_params.get("voice_input", "")
-if voice_transcript:
-    st.session_state.pending = voice_transcript
-    st.query_params.clear()
-
-# 2. Pick mic language based on last detected language
 mic_lang = BROWSER_LANG_MAP.get(st.session_state.last_lang, "en-US")
 
-# 3. Render the mic button via injected JS
+# Render mic button + transcript display box
+# JS fills a visible input; user presses Enter or clicks Send to submit
 components.html(f"""
 <style>
+  body {{ margin:0; padding:0; background:transparent; font-family:Inter,sans-serif; }}
   #mic-btn {{
     background: rgba(240,90,30,0.09);
     color: #f07040;
@@ -341,17 +339,46 @@ components.html(f"""
     font-size: 13px;
     padding: 8px 16px;
     cursor: pointer;
-    font-family: Inter, sans-serif;
     transition: all 0.2s;
   }}
   #mic-btn:hover {{ background: rgba(240,90,30,0.22); border-color: #f07040; color: #ffb080; }}
   #mic-btn.listening {{ background: rgba(240,90,30,0.35); border-color: #f07040; animation: micPulse 1s ease-in-out infinite; }}
   @keyframes micPulse {{ 0%,100%{{box-shadow:0 0 0 0 rgba(240,90,30,0.4);}} 50%{{box-shadow:0 0 0 6px rgba(240,90,30,0);}} }}
-  #mic-status {{ font-size: 12px; color: rgba(200,140,100,0.7); margin-top: 6px; font-family: Inter, sans-serif; min-height: 18px; }}
+
+  #voice-row {{ display:flex; gap:8px; align-items:center; margin-top:10px; }}
+  #voice-input {{
+    flex: 1;
+    background: rgba(3,6,18,0.72);
+    color: #f0d0b0;
+    border: 1px solid rgba(240,90,30,0.28);
+    border-radius: 10px;
+    font-size: 13px;
+    padding: 7px 12px;
+    font-family: Inter, sans-serif;
+    outline: none;
+    display: none;
+  }}
+  #voice-input.visible {{ display: block; }}
+  #send-btn {{
+    background: rgba(240,90,30,0.7);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    padding: 8px 14px;
+    cursor: pointer;
+    display: none;
+  }}
+  #send-btn.visible {{ display: block; }}
+  #mic-status {{ font-size: 12px; color: rgba(200,140,100,0.7); margin-top:5px; min-height:16px; }}
 </style>
 
 <button id="mic-btn" onclick="startListening()">🎤 Speak</button>
 <div id="mic-status"></div>
+<div id="voice-row">
+  <input id="voice-input" type="text" placeholder="Transcript will appear here..." />
+  <button id="send-btn" onclick="sendVoice()">Send ➤</button>
+</div>
 
 <script>
 var currentLang = "{mic_lang}";
@@ -362,9 +389,10 @@ function startListening() {{
     document.getElementById('mic-status').textContent = '❌ Use Chrome or Edge for voice input';
     return;
   }}
-
-  var btn = document.getElementById('mic-btn');
+  var btn    = document.getElementById('mic-btn');
   var status = document.getElementById('mic-status');
+  var inp    = document.getElementById('voice-input');
+  var send   = document.getElementById('send-btn');
 
   var rec = new SR();
   rec.lang = currentLang;
@@ -373,30 +401,30 @@ function startListening() {{
 
   btn.classList.add('listening');
   btn.textContent = '🔴 Listening...';
-  status.textContent = 'Speak now — mic is active';
+  status.textContent = 'Speak now...';
+  inp.classList.remove('visible');
+  send.classList.remove('visible');
 
   rec.onresult = function(e) {{
     var text = e.results[0][0].transcript;
-    status.textContent = '✅ Heard: ' + text;
+    inp.value = text;
+    inp.classList.add('visible');
+    send.classList.add('visible');
+    status.textContent = '✅ Tap Send or edit below:';
     btn.classList.remove('listening');
     btn.textContent = '🎤 Speak';
-
-    // Write transcript into URL so Streamlit (Python) can read it
-    var url = new URL(window.parent.location.href);
-    url.searchParams.set('voice_input', text);
-    window.parent.location.href = url.toString();
   }};
 
   rec.onerror = function(e) {{
     btn.classList.remove('listening');
     btn.textContent = '🎤 Speak';
     var msgs = {{
-      'no-speech':        '🤫 No speech detected — try again',
-      'audio-capture':    '❌ Mic not found or blocked',
-      'not-allowed':      '🔒 Mic permission denied',
-      'network':          '🌐 Network error',
+      'no-speech':     '🤫 No speech — try again',
+      'audio-capture': '❌ Mic not accessible',
+      'not-allowed':   '🔒 Allow mic in browser settings',
+      'network':       '🌐 Network error',
     }};
-    status.textContent = msgs[e.error] || ('❌ Error: ' + e.error);
+    status.textContent = msgs[e.error] || ('❌ ' + e.error);
   }};
 
   rec.onend = function() {{
@@ -408,8 +436,28 @@ function startListening() {{
 
   rec.start();
 }}
+
+function sendVoice() {{
+  var text = document.getElementById('voice-input').value.trim();
+  if (!text) return;
+  // Inject into parent Streamlit chat input and submit
+  var chatInputs = window.parent.document.querySelectorAll('textarea');
+  for (var i = 0; i < chatInputs.length; i++) {{
+    var ta = chatInputs[i];
+    var nv = Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype, 'value');
+    nv.set.call(ta, text);
+    ta.dispatchEvent(new Event('input', {{bubbles:true}}));
+    // Press Enter to submit
+    ta.dispatchEvent(new KeyboardEvent('keydown', {{key:'Enter', keyCode:13, bubbles:true}}));
+    break;
+  }}
+  document.getElementById('voice-input').value = '';
+  document.getElementById('voice-input').classList.remove('visible');
+  document.getElementById('send-btn').classList.remove('visible');
+  document.getElementById('mic-status').textContent = '📨 Sent!';
+}}
 </script>
-""", height=80)
+""", height=130)
 
 # ─────────────────────────────────────────
 #  TEXT INPUT
