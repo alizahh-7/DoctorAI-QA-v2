@@ -30,7 +30,7 @@ st.set_page_config(
     page_title="DoctorAI-QA v2", 
     page_icon="🩺", 
     layout="wide",
-    initial_sidebar_state="expanded"  # ← ADD THIS to force sidebar open
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
@@ -90,25 +90,39 @@ footer {display:none !important;}
 }
 .stApp>*{position:relative;z-index:2;}
 
-/* ── SIDEBAR - FORCE VISIBLE ── */
+/* ── SIDEBAR - PERMANENT LOCK ── */
 [data-testid="stSidebar"]{
   background:rgba(3,6,18,0.92) !important;
   backdrop-filter:blur(24px);
   border-right:1px solid rgba(240,90,30,0.12);
   z-index:100;
-  display:block !important;  /* ← FORCE DISPLAY */
-  visibility:visible !important;  /* ← FORCE VISIBLE */
 }
-[data-testid="stSidebar"]>div:first-child{
-  display:block !important;
-  visibility:visible !important;
-}
-/* Hide default nav but keep sidebar visible */
 [data-testid="stSidebarNav"]{display:none !important;}
 
-/* Hide the collapse button to prevent users from hiding sidebar */
-[data-testid="collapsedControl"]{display:none !important;}
-button[kind="header"]{display:none !important;}
+/* FORCE SIDEBAR ALWAYS VISIBLE - CANNOT BE CLOSED */
+[data-testid="stSidebar"] {
+  display: block !important;
+  visibility: visible !important;
+  transform: translateX(0) !important;
+  transition: none !important;
+}
+[data-testid="stSidebar"][aria-expanded="false"] {
+  transform: translateX(0) !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+}
+/* Hide collapse button completely */
+[data-testid="collapsedControl"] {
+  display: none !important;
+}
+button[kind="header"] {
+  display: none !important;
+}
+section[data-testid="stSidebar"] button[aria-label="Close sidebar"] {
+  display: none !important;
+}
 
 .nav-card{
   display:flex;align-items:center;gap:14px;
