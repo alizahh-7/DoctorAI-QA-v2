@@ -72,7 +72,7 @@ Millions of people search for health information online — but most resources a
 
 | Flag | Language | Native Script | Romanized Input |
 |------|----------|--------------|-----------------|
-| 🇬🇧 | **English** | ✅ | ✅ |
+| 🇬🇧 | **English** | ✅ Latin | ✅ `what are symptoms of fever` |
 | 🇮🇳 | **Hindi** | ✅ देवनागरी | ✅ `mujhe bukhar hai` |
 | 🇮🇳 | **Telugu** | ✅ తెలుగు | ✅ `naku jwaram undi` |
 | 🇮🇳 | **Marathi** | ✅ मराठी | ✅ `mla taap aahe` |
