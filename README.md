@@ -18,7 +18,7 @@
 
 <br/>
 
-![DoctorAI-QA Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-f07040?style=for-the-badge)
+![DoctorAI-QA Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-f07040?style=for-the-badge) https://doctorai-app-v2-nysyz8d239s7dxnvkyjzfm.streamlit.app/
 
 </div>
 
