@@ -1,14 +1,9 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import random
-
-try:
-    import speech_recognition as sr
-    voice_enabled = True
-except:
-    voice_enabled = False
 
 try:
     from gtts import gTTS
@@ -27,8 +22,8 @@ client = OpenAI(
 )
 
 st.set_page_config(
-    page_title="DoctorAI-QA v2", 
-    page_icon="🩺", 
+    page_title="DoctorAI-QA v2",
+    page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -47,7 +42,7 @@ footer {display:none !important;}
 [data-testid="stDecoration"] {display:none !important;}
 [data-testid="stStatusWidget"] {display:none !important;}
 
-/* ── FIX TOP PADDING — no header means no gap needed ── */
+/* ── FIX TOP PADDING ── */
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
@@ -90,7 +85,7 @@ footer {display:none !important;}
 }
 .stApp>*{position:relative;z-index:2;}
 
-/* ── SIDEBAR - PERMANENT LOCK ── */
+/* ── SIDEBAR ── */
 [data-testid="stSidebar"]{
   background:rgba(3,6,18,0.92) !important;
   backdrop-filter:blur(24px);
@@ -98,8 +93,6 @@ footer {display:none !important;}
   z-index:100;
 }
 [data-testid="stSidebarNav"]{display:none !important;}
-
-/* FORCE SIDEBAR ALWAYS VISIBLE - CANNOT BE CLOSED */
 [data-testid="stSidebar"] {
   display: block !important;
   visibility: visible !important;
@@ -113,16 +106,9 @@ footer {display:none !important;}
   transform: translateX(0) !important;
   visibility: visible !important;
 }
-/* Hide collapse button completely */
-[data-testid="collapsedControl"] {
-  display: none !important;
-}
-button[kind="header"] {
-  display: none !important;
-}
-section[data-testid="stSidebar"] button[aria-label="Close sidebar"] {
-  display: none !important;
-}
+[data-testid="collapsedControl"] { display: none !important; }
+button[kind="header"] { display: none !important; }
+section[data-testid="stSidebar"] button[aria-label="Close sidebar"] { display: none !important; }
 
 .nav-card{
   display:flex;align-items:center;gap:14px;
@@ -303,6 +289,15 @@ def get_system_prompt(lang):
 def get_tts_lang(lang):
     return {"hindi":"hi","arabic":"ar","telugu":"te","marathi":"mr","english":"en"}.get(lang,"en")
 
+# lang code map for Web Speech API
+BROWSER_LANG_MAP = {
+    "hindi":   "hi-IN",
+    "telugu":  "te-IN",
+    "marathi": "mr-IN",
+    "arabic":  "ar-SA",
+    "english": "en-US",
+}
+
 # ─────────────────────────────────────────
 #  CHAT HISTORY
 # ─────────────────────────────────────────
@@ -322,24 +317,107 @@ if st.session_state.last_reply and tts_enabled:
         except Exception as e:
             st.error(f"Audio error: {e}")
 
-# ── VOICE INPUT ──
-prompt = None
-if voice_enabled:
-    if st.button("🎤 Speak"):
-        r = sr.Recognizer()
-        try:
-            with sr.Microphone() as source:
-                st.info("Listening...")
-                audio = r.listen(source, timeout=5)
-                text  = r.recognize_google(audio)
-                st.success(f"You said: {text}")
-                prompt = text
-        except:
-            st.error("Voice error / Mic issue")
+# ─────────────────────────────────────────
+#  VOICE INPUT — Browser Web Speech API
+# ─────────────────────────────────────────
 
-# ── TEXT INPUT ──
+# 1. Read transcript from query params (set by JS after recognition)
+voice_transcript = st.query_params.get("voice_input", "")
+if voice_transcript:
+    st.session_state.pending = voice_transcript
+    st.query_params.clear()
+
+# 2. Pick mic language based on last detected language
+mic_lang = BROWSER_LANG_MAP.get(st.session_state.last_lang, "en-US")
+
+# 3. Render the mic button via injected JS
+components.html(f"""
+<style>
+  #mic-btn {{
+    background: rgba(240,90,30,0.09);
+    color: #f07040;
+    border: 1px solid rgba(240,90,30,0.28);
+    border-radius: 8px;
+    font-size: 13px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: Inter, sans-serif;
+    transition: all 0.2s;
+  }}
+  #mic-btn:hover {{ background: rgba(240,90,30,0.22); border-color: #f07040; color: #ffb080; }}
+  #mic-btn.listening {{ background: rgba(240,90,30,0.35); border-color: #f07040; animation: micPulse 1s ease-in-out infinite; }}
+  @keyframes micPulse {{ 0%,100%{{box-shadow:0 0 0 0 rgba(240,90,30,0.4);}} 50%{{box-shadow:0 0 0 6px rgba(240,90,30,0);}} }}
+  #mic-status {{ font-size: 12px; color: rgba(200,140,100,0.7); margin-top: 6px; font-family: Inter, sans-serif; min-height: 18px; }}
+</style>
+
+<button id="mic-btn" onclick="startListening()">🎤 Speak</button>
+<div id="mic-status"></div>
+
+<script>
+var currentLang = "{mic_lang}";
+
+function startListening() {{
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {{
+    document.getElementById('mic-status').textContent = '❌ Use Chrome or Edge for voice input';
+    return;
+  }}
+
+  var btn = document.getElementById('mic-btn');
+  var status = document.getElementById('mic-status');
+
+  var rec = new SR();
+  rec.lang = currentLang;
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
+
+  btn.classList.add('listening');
+  btn.textContent = '🔴 Listening...';
+  status.textContent = 'Speak now — mic is active';
+
+  rec.onresult = function(e) {{
+    var text = e.results[0][0].transcript;
+    status.textContent = '✅ Heard: ' + text;
+    btn.classList.remove('listening');
+    btn.textContent = '🎤 Speak';
+
+    // Write transcript into URL so Streamlit (Python) can read it
+    var url = new URL(window.parent.location.href);
+    url.searchParams.set('voice_input', text);
+    window.parent.location.href = url.toString();
+  }};
+
+  rec.onerror = function(e) {{
+    btn.classList.remove('listening');
+    btn.textContent = '🎤 Speak';
+    var msgs = {{
+      'no-speech':        '🤫 No speech detected — try again',
+      'audio-capture':    '❌ Mic not found or blocked',
+      'not-allowed':      '🔒 Mic permission denied',
+      'network':          '🌐 Network error',
+    }};
+    status.textContent = msgs[e.error] || ('❌ Error: ' + e.error);
+  }};
+
+  rec.onend = function() {{
+    if (btn.classList.contains('listening')) {{
+      btn.classList.remove('listening');
+      btn.textContent = '🎤 Speak';
+    }}
+  }};
+
+  rec.start();
+}}
+</script>
+""", height=80)
+
+# ─────────────────────────────────────────
+#  TEXT INPUT
+# ─────────────────────────────────────────
+prompt = None
 text_input = st.chat_input("Ask in any language · कोई भी भाषा · ఏ భాషలోనైనా · أي لغة")
-if text_input: prompt = text_input
+if text_input:
+    prompt = text_input
 if st.session_state.pending:
     prompt = st.session_state.pending
     st.session_state.pending = None
