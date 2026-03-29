@@ -7,7 +7,7 @@
 **Ask health questions in any language. Get answers in yours.**
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/🚀_Live_App-Streamlit-red?style=for-the-badge&logo=streamlit&logoColor=white)](https://doctorai-app-v2-nysyz8d239s7dxnvkyjzfm.streamlit.app/)
+[![Streamlit](https://img.shields.io/badge/🚀_Live_App-Streamlit-red?style=for-the-badge&logo=streamlit&logoColor=white)](https://doctorai-app-v2.streamlit.app/)
 [![HuggingFace](https://img.shields.io/badge/🤗_HuggingFace-FFD21E?style=for-the-badge)](https://huggingface.co/syedazah777/DoctorAI-QA)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green?style=for-the-badge)](LICENSE)
 [![Languages](https://img.shields.io/badge/Languages-5-orange?style=for-the-badge)](#-supported-languages)
@@ -18,7 +18,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-f07040?style=for-the-badge)](https://doctorai-app-v2-nysyz8d239s7dxnvkyjzfm.streamlit.app/)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-f07040?style=for-the-badge)](https://doctorai-app-v2.streamlit.app/)
 </div>
 
 ---
