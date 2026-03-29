@@ -26,13 +26,13 @@ client = OpenAI(
     default_headers={"HTTP-Referer": "http://localhost:8501", "X-Title": "DoctorAI-QA"}
 )
 
-st.set_page_config(page_title="DoctorAI-QA v2", page_icon="🩺", layout="wide")
 st.set_page_config(
-    page_title="DoctorAI-QA v2",
-    page_icon="🩺",
+    page_title="DoctorAI-QA v2", 
+    page_icon="🩺", 
     layout="wide",
-    initial_sidebar_state="expanded"   # 👈 ADD THIS
+    initial_sidebar_state="expanded"  # ← ADD THIS to force sidebar open
 )
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -40,7 +40,7 @@ html,body,[class*="css"]{font-family:'Inter',sans-serif;}
 
 /* ── HIDE STREAMLIT HEADER & FOOTER COMPLETELY ── */
 #MainMenu {visibility:hidden;}
-
+header[data-testid="stHeader"] {display:none !important;}
 footer {display:none !important;}
 .stDeployButton {display:none !important;}
 [data-testid="stToolbar"] {display:none !important;}
@@ -90,14 +90,25 @@ footer {display:none !important;}
 }
 .stApp>*{position:relative;z-index:2;}
 
-/* ── SIDEBAR ── */
+/* ── SIDEBAR - FORCE VISIBLE ── */
 [data-testid="stSidebar"]{
   background:rgba(3,6,18,0.92) !important;
   backdrop-filter:blur(24px);
   border-right:1px solid rgba(240,90,30,0.12);
   z-index:100;
+  display:block !important;  /* ← FORCE DISPLAY */
+  visibility:visible !important;  /* ← FORCE VISIBLE */
 }
+[data-testid="stSidebar"]>div:first-child{
+  display:block !important;
+  visibility:visible !important;
+}
+/* Hide default nav but keep sidebar visible */
 [data-testid="stSidebarNav"]{display:none !important;}
+
+/* Hide the collapse button to prevent users from hiding sidebar */
+[data-testid="collapsedControl"]{display:none !important;}
+button[kind="header"]{display:none !important;}
 
 .nav-card{
   display:flex;align-items:center;gap:14px;
